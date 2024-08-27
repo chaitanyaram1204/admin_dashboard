@@ -14,13 +14,13 @@ public class Loginservice {
         {"nodummy", "ye"},
         {"avantel", "something"}
     };
-    private final String filePath = "C:\\Users\\CHAITANYA\\Downloads\\details.txt";
+    private final String filePath = File_Path;
 
     public boolean validateUser(String userId, String password) {
         boolean isAuthenticated = false;
 
         if (userId != null && password != null) {
-            String filePath = "C:\\Users\\CHAITANYA\\Downloads\\details.txt";
+            String filePath = File_Path;
 
             File file = new File(filePath);
 
@@ -58,7 +58,7 @@ public class Loginservice {
     public void add(String newUserId, String newPassword) {
     	if (newUserId != null && newPassword != null) {
             
-                String filePath = "C:\\Users\\CHAITANYA\\Downloads\\details.txt";
+                String filePath = File_Path;
 
                 File file = new File(filePath);
                 BufferedWriter bw = null;

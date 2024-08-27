@@ -17,7 +17,7 @@
     List<User> userList = new ArrayList<>();
     try {
         // Define the file path for the 'details' file
-                String filePath = "C:\\Users\\CHAITANYA\\Downloads\\details.txt";
+                String filePath = File_Path;
         BufferedReader reader = new BufferedReader(new FileReader(filePath));
         String line;
         
