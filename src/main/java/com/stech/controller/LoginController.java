@@ -1,29 +1,31 @@
 package com.stech.controller;
 
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.ModelMap;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.SessionAttributes;
-import java.util.List;
+import com.stech.model.User;
 import com.stech.service.Loginservice;
-import com.stech.model.User; // Import User class
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.List;
 
 @Controller
 @SessionAttributes("name")
 public class LoginController {
-	 
-    @org.springframework.beans.factory.annotation.Autowired
-    Loginservice service;
-	
+
+    @Autowired
+    private Loginservice service;
+
     @GetMapping("/login")
     public String viewLoginPage(ModelMap map) {
         return "login";
     }
 
     @GetMapping("/new")
-    public String getnew(ModelMap map) {
+    public String getNewUserPage(ModelMap map) {
         return "new";
     }
 
@@ -39,16 +41,27 @@ public class LoginController {
         model.put("name", name);
         model.put("password", password);
 
-        return "welcome";
+        return "login1";
     }
-
+    @GetMapping("/login1")
+    public String getall(Model Map){
+    	return "login1";
+    }
     @PostMapping("/new")
-    public String addUser(ModelMap model, @RequestParam String name, @RequestParam String password) {
-        boolean isValidUser = service.validateUser(name, password);
-        if (isValidUser)
-            return "error";
-        service.add(name, password);
-        return "success";
+    public String addUser(
+            @RequestParam String name,
+            @RequestParam String password,
+            @RequestParam("photo") MultipartFile photo,
+            ModelMap model) {
+        try {
+            String photoName = service.saveUser(name, password, photo);
+            model.put("message", "User added successfully!");
+            model.put("photoName", photoName); // Optional: Pass photoName to the view if needed
+            return "success";
+        } catch (IOException e) {
+            model.put("errorMessage", "An error occurred: " + e.getMessage());
+            return "new";
+        }
     }
 
     @GetMapping("/logout")
@@ -66,11 +79,12 @@ public class LoginController {
     }
 
     @GetMapping("/delete")
-    public String getdelete(ModelMap map) {
+    public String getDeletePage(ModelMap map) {
         return "delete";
     }
+
     @GetMapping("/update")
-    public String getUpdate(ModelMap map) {
+    public String getUpdatePage(ModelMap map) {
         return "update";
     }
 
@@ -85,24 +99,56 @@ public class LoginController {
 
         return "success";
     }
-    @GetMapping("/list")
-    public String getuserrs(ModelMap map) {
-        return "listUsers";
+
+    @GetMapping("/search")
+    public String searchPage(ModelMap map) {
+        return "search";
     }
-    
-    @GetMapping("/listUsers")
+
+    @PostMapping("/search")
+    public String searchUser(@RequestParam("username") String username, ModelMap model) {
+        List<String> user = service.findUserByName(username);
+        if (user != null) {
+            model.addAttribute("result", user);
+        } else {
+            model.addAttribute("errorMessage", "User not found.");
+        }
+        return "search";
+    }
+
+    @GetMapping("/list")
     public String listAllUsers(ModelMap model) {
         List<User> users = service.getAllUsers();
-        
-        // Debugging: Check if the list is populated
-        if (users == null || users.isEmpty()) {
-            System.out.println("No users found!");
-        } else {
-            System.out.println("Users found: " + users.size());
-        }
-
         model.addAttribute("users", users);
         return "listUsers";
     }
 
+    @GetMapping("/sort")
+    public String showSortedUsers(ModelMap model) {
+        List<User> sortedUsers = service.getSortedUsers();
+        model.addAttribute("sortedUsers", sortedUsers);
+        return "sort";
+    }
+
+    @GetMapping("/pagination")
+    public String getAllUsers(@RequestParam(defaultValue = "1") int page, ModelMap model) {
+        List<User> users = service.getUsers(page, 5);
+        int count = service.getUsersSize();
+
+        System.out.println(count);
+        int pageSize = 5;
+        int totalPages = (int) Math.ceil((double) count / pageSize);
+        model.addAttribute("users", users);
+        model.addAttribute("totalPages", totalPages);
+        model.addAttribute("currentPage", page);
+
+        return "pagi";
+    }
+    @GetMapping("/count")
+    public String getcount(ModelMap model) {
+        int count = service.getUsersSize();
+        model.addAttribute("count", count);
+
+        return "total";
+    }
 }

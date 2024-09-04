@@ -7,6 +7,8 @@
 <title>Insert title here</title>
 </head>
 <body>
-<h1>Already existing user</h1>
+<h1>there is something error in your current application</h1>
+    <a href="/login1">Back to Home page</a>
+
 </body>
 </html>

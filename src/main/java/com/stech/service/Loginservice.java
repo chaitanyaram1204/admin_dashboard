@@ -1,209 +1,159 @@
 package com.stech.service;
 
-import java.util.*;
-import java.io.*;
+import com.stech.model.User;
 import org.springframework.stereotype.Service;
-import com.stech.model.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
+
 @Service
 public class Loginservice {
 
-    public String[][] ar = {
-        {"chaitu", "abc123"},
-        {"ram", "123"},
-        {"dummy", "no"},
-        {"nodummy", "ye"},
-        {"avantel", "something"}
-    };
-    private final String filePath = File_Path;
+    private static final String FILE_DIRECTORY = "src/main/resources/static/images/";
+    private static final String DETAILS_FILE_PATH = "Your path";
 
-    public boolean validateUser(String userId, String password) {
-        boolean isAuthenticated = false;
-
-        if (userId != null && password != null) {
-            String filePath = File_Path;
-
-            File file = new File(filePath);
-
-            if (file.exists()) {
-                BufferedReader br = null;
-                try {
-                    br = new BufferedReader(new FileReader(file));
-                    String line;
-                    while ((line = br.readLine()) != null) {
-                        String[] details = line.split(",");
-                        if (details[0].trim().equals(userId) && details[1].trim().equals(password)) {
-                            isAuthenticated = true;
-                            break;
-                        }
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } finally {
-                    if (br != null) {
-                        try {
-                            br.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            } else {
-                System.out.println("Details.txt file does not exist.");
-            }
-        }
-
-        return isAuthenticated;
+    // Validate user credentials
+    public boolean validateUser(String name, String password) {
+        List<User> users = getAllUsers();
+        return users.stream().anyMatch(user -> user.getName().equals(name) && user.getPassword().equals(password));
     }
 
-    public void add(String newUserId, String newPassword) {
-    	if (newUserId != null && newPassword != null) {
-            
-                String filePath = File_Path;
+    // Add a new user and save the user's photo file name
+    public String saveUser(String name, String password, MultipartFile photo) throws IOException {
+        // Save photo
+        String fileName = photo.getOriginalFilename();
+        Path uploadPath = Paths.get(FILE_DIRECTORY, fileName);
 
-                File file = new File(filePath);
-                BufferedWriter bw = null;
-
-                try {
-                    // Create the file if it doesn't exist
-                    if (!file.exists()) {
-                        file.createNewFile();
-                    }
-
-                    // Open the file in append mode
-                    bw = new BufferedWriter(new FileWriter(file, true));
-                    bw.write(newUserId + "," + newPassword);
-                    bw.newLine();
-
-                    System.out.println("Registration successful!");
-                    // Handle redirect to login page in your controller if needed
-
-                } catch (IOException e) {
-                    System.out.println("Error occurred while registering: " + e.getMessage());
-                } finally {
-                    if (bw != null) {
-                        try {
-                            bw.close();
-                        } catch (IOException e) {
-                            System.out.println("Error occurred while closing the file: " + e.getMessage());
-                        }
-                    }
-                }
-            
+        if (!Files.exists(uploadPath.getParent())) {
+            Files.createDirectories(uploadPath.getParent()); // Create directory if not exists
         }
+
+        try (InputStream inputStream = photo.getInputStream()) {
+            Files.copy(inputStream, uploadPath, StandardCopyOption.REPLACE_EXISTING); // Save file to disk
+        }
+
+        // Append user information and photo file name to the details.txt file
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(DETAILS_FILE_PATH, true))) {
+            bw.write(name + "," + password + "," + fileName);
+            bw.newLine();
+        }
+
+        return fileName;
     }
-    public boolean deleteUser(String name, String password) {
-        File inputFile = new File(filePath);
-        File dummyFile = new File("users_dummy.txt");
 
-        boolean userDeleted = false;
+    // Update user password
+    public boolean updateUser(String name, String newPassword) {
+        List<User> users = getAllUsers();
+        boolean isUpdated = false;
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(inputFile));
-             BufferedWriter dummyWriter = new BufferedWriter(new FileWriter(dummyFile))) {
-
-            String currentLine;
-
-            while ((currentLine = reader.readLine()) != null) {
-                String[] userDetails = currentLine.split(",");
-                if (userDetails.length == 2 && userDetails[0].equals(name) && userDetails[1].equals(password)) {
-                    userDeleted = true; // Skip writing this user to the dummy file
-                } else {
-                    dummyWriter.write(currentLine);
-                    dummyWriter.newLine();
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(DETAILS_FILE_PATH, false))) {
+            for (User user : users) {
+                if (user.getName().equals(name)) {
+                    bw.write(name + "," + newPassword + "," + user.getPhotoFileName());
+                    isUpdated = true;
+                } 
+                else if(user.getPassword().equals(newPassword)){
+                	bw.write(name + "," + newPassword + "," + user.getPhotoFileName());
+                    isUpdated = true;
                 }
+                else {
+                    bw.write(user.getName() + "," + user.getPassword() + "," + user.getPhotoFileName());
+                }
+                bw.newLine();
             }
-
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        // Clear the original file and copy the dummy file content back to it
-        if (userDeleted) {
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(inputFile))) {
-                try (BufferedReader dummyReader = new BufferedReader(new FileReader(dummyFile))) {
-                    String currentLine;
-                    while ((currentLine = dummyReader.readLine()) != null) {
-                        writer.write(currentLine);
-                        writer.newLine();
+        return isUpdated;
+    }
+
+    // Delete a user
+    public boolean deleteUser(String name, String password) {
+        List<User> users = getAllUsers();
+        boolean isDeleted = false;
+
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(DETAILS_FILE_PATH, false))) {
+            for (User user : users) {
+                if (user.getName().equals(name) && user.getPassword().equals(password)) {
+                    isDeleted = true;
+                    // Optionally delete the user's photo file here if needed
+                    Path photoFile = Paths.get(FILE_DIRECTORY, user.getPhotoFileName());
+                    if (Files.exists(photoFile)) {
+                        Files.delete(photoFile);
                     }
+                } else {
+                    bw.write(user.getName() + "," + user.getPassword() + "," + user.getPhotoFileName());
+                    bw.newLine();
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
-        // Delete the dummy file after operation
-        dummyFile.delete();
-
-        return userDeleted;
+        return isDeleted;
     }
+
+    // Retrieve all users
     public List<User> getAllUsers() {
         List<User> users = new ArrayList<>();
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-            String currentLine;
-
-            while ((currentLine = reader.readLine()) != null) {
-                String[] userDetails = currentLine.split(",");
-                if (userDetails.length == 2) {
-                    users.add(new User(userDetails[0], userDetails[1]));
+        try (Scanner scanner = new Scanner(new File("Your path"))) {
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
+                String[] parts = line.split(",");
+//                if (parts.length == 3) {
+//                    users.add(new User(parts[0].trim(), parts[1].trim()));
+//                }
+                if (parts.length == 3) {
+                    users.add(new User(parts[0].trim(), parts[1].trim(), parts[2].trim()));
                 }
             }
-
-        } catch (IOException e) {
+        } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
 
         return users;
     }
-    public boolean updateUser(String userId, String newPassword) {
-        File inputFile = new File(filePath);
-        File dummyFile = new File("users_dummy.txt");
 
-        boolean userUpdated = false;
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(inputFile));
-             BufferedWriter dummyWriter = new BufferedWriter(new FileWriter(dummyFile))) {
-
-            String currentLine;
-
-            while ((currentLine = reader.readLine()) != null) {
-                String[] userDetails = currentLine.split(",");
-                if (userDetails.length == 2 && userDetails[0].equals(userId)) {
-                    dummyWriter.write(userId + "," + newPassword); // Update the password
-                    userUpdated = true;
-                } else {
-                    dummyWriter.write(currentLine); // Write the original line if user doesn't match
-                }
-                dummyWriter.newLine();
-            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        // If user was updated, replace the original file with the updated content
-        if (userUpdated) {
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(inputFile))) {
-                try (BufferedReader dummyReader = new BufferedReader(new FileReader(dummyFile))) {
-                    String currentLine;
-                    while ((currentLine = dummyReader.readLine()) != null) {
-                        writer.write(currentLine);
-                        writer.newLine();
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        // Delete the dummy file after operation
-        dummyFile.delete();
-
-        return userUpdated;
+    // Get sorted users by name
+    public List<User> getSortedUsers() {
+        List<User> users = getAllUsers();
+        users.sort(Comparator.comparing(User::getName));
+        return users;
     }
-    // Uncomment and use this method if you want to add users to the HashMap instead of the file
-    // public void addUser(String userid, String password) {
-    //     mp.put(userid, password);
-    // }
 
+    // Get users with pagination
+    public List<User> getUsers(int page, int size) {
+        List<User> users = getAllUsers();
+        int start = (page - 1) * size;
+        int end = Math.min(start + size, users.size());
+        if (start > users.size()) {
+            return new ArrayList<>();
+        }
+        return users.subList(start, end);
+    }
+
+    // Get total number of users
+    public int getUsersSize() {
+        return getAllUsers().size();
+    }
+
+    // Find user by username
+    public List<String> findUserByName(String username) {
+        List<User> users = getAllUsers();
+        List<String> result = new ArrayList<>();
+        for (User user : users) {
+            if (user.getName().equals(username)) {
+                result.add(user.getName());
+                result.add(user.getPassword());
+                System.out.println(user.getPhotoFileName());
+                result.add(user.getPhotoFileName());
+            }
+        }
+        return result.isEmpty() ? null : result;
+    }
+    
 }

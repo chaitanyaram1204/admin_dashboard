@@ -98,7 +98,7 @@
     </style>
 </head>
 <body>
-    <h2>Sorted Users</h2>
+    <h2>All Users</h2>
     <table>
         <thead>
             <tr>
@@ -129,7 +129,45 @@
         </tbody>
     </table>
 
-    <a href="/login1">Back to Home page</a>
+    <div class="pagination">
+        <% 
+            int currentPage = (int) request.getAttribute("currentPage");
+            int totalPages = (int) request.getAttribute("totalPages");
+
+            if (currentPage > 1) {
+        %>
+            <a href="/pagination?page=<%= currentPage - 1 %>">Previous</a>
+        <% 
+            } else {
+        %>
+            <a class="disabled">Previous</a>
+        <% 
+            }
+
+            for (int i = 1; i <= totalPages; i++) {
+                if (i == currentPage) {
+        %>
+            <a class="active"><%= i %></a>
+        <% 
+                } else {
+        %>
+            <a href="/pagination?page=<%= i %>"><%= i %></a>
+        <% 
+                }
+            }
+
+            if (currentPage < totalPages) {
+        %>
+            <a href="/pagination?page=<%= currentPage + 1 %>">Next</a>
+        <% 
+            } else {
+        %>
+            <a class="disabled">Next</a>
+        <% 
+            }
+        %>
     </div>
+
+    <a href="/login1">Back to Home page</a>
 </body>
 </html>

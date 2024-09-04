@@ -100,36 +100,34 @@
 <body>
     <h2>Sorted Users</h2>
     <table>
-        <thead>
-            <tr>
-                <th>Username</th>
-                <th>Password</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% 
-                List<User> users = (List<User>) request.getAttribute("users");
-                if (users != null && !users.isEmpty()) {
-                    for (User user : users) {
-            %>
+            <thead>
                 <tr>
-                    <td><%= user.getName() %></td>
-                    <td><%= user.getPassword() %></td>
+                    <th>Username</th>
+                    <th>Password</th>
                 </tr>
-            <% 
+            </thead>
+            <tbody>
+                <%
+                    List<User> sortedUsers = (List<User>) request.getAttribute("sortedUsers");
+                    if (sortedUsers != null && !sortedUsers.isEmpty()) {
+                        for (User user : sortedUsers) {
+                %>
+                    <tr>
+                        <td><%= user.getName() %></td>
+                        <td><%= user.getPassword() %></td>
+                    </tr>
+                <%
+                        }
+                    } else {
+                %>
+                    <tr>
+                        <td colspan="2" class="no-users">No users found.</td>
+                    </tr>
+                <%
                     }
-                } else {
-            %>
-                <tr>
-                    <td colspan="2">No users found.</td>
-                </tr>
-            <% 
-                }
-            %>
-        </tbody>
-    </table>
-
+                %>
+            </tbody>
+        </table>
     <a href="/login1">Back to Home page</a>
-    </div>
 </body>
 </html>
