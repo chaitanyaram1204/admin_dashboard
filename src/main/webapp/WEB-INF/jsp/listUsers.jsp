@@ -106,6 +106,7 @@
                 <th>Password</th>
             </tr>
         </thead>
+        
         <tbody>
             <% 
                 List<User> users = (List<User>) request.getAttribute("users");
